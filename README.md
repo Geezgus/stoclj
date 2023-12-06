@@ -4,9 +4,11 @@ The [Clojure](https://github.com/clojure/clojure) Stock market
 
 ## Prerequisites
 
-You will need either:
-- [Leiningen][] 2.0.0 or above installed.
-- [Docker + Docker Compose](https://docs.docker.com/get-docker/)
+You will need:
+- A [brapi](https://brapi.dev/) api token
+- As well as one of either:
+    - [Leiningen][] 2.0.0 or above installed.
+    - [Docker + Docker Compose](https://docs.docker.com/get-docker/)
 
 [leiningen]: https://github.com/technomancy/leiningen
 
