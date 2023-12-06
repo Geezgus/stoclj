@@ -37,31 +37,43 @@
     brapi-data))
 
 
-(defn get-balance [field]
-  (reduce + (map (fn [x]
-                   (let [value (field x)]
-                     (if (= :venda (:tipo x))
-                       (- value)
-                       value)))
-                 (db/history))))
+(defn get-balance
+  ([field]
+   (reduce + (map (fn [x]
+                    (let [value (field x)]
+                      (if (= :venda (:tipo x))
+                        (- value)
+                        value)))
+                  (db/history))))
+  ([stock field]
+   (reduce +
+           (map (fn [x]
+                  (let [value (field x)]
+                    (if (= :venda (:tipo x))
+                      (- value)
+                      value)))
+                (filter
+                 (fn [x] (= (:stock x) stock))
+                 (db/history))))))
 
 
 (defn start-transaction [response-body transaction-type]
   (let [{:keys [ticker qte]}   response-body
         {:keys [ultimo_preco]} (get-stock ticker)] 
-    
+
     (letfn [(now [] (java.util.Date.))]
-      (db/register {:qte            qte
+      (db/register {:stock          ticker
+                    :qte            qte
                     :tipo           (keyword transaction-type)
                     :preco_unitario ultimo_preco
                     :preco_total    (* qte ultimo_preco)
-                    :dh             (now)})))
+                    :dh             (now)}))
   
-  (if (neg? (get-balance :qte))
-    (do (db/undo-register) {:status 403
-                            :body (stringify-json {:msg "Você não possui ações suficientes."})})
-    {:status 200 
-     :body (stringify-json {:msg "Transação realizada com sucesso."})}))
+    (if (neg? (get-balance ticker :qte))
+      (do (db/undo-register) {:status 403
+                              :body (stringify-json {:msg "Você não possui ações suficientes."})})
+      {:status 200 
+      :body (stringify-json {:msg "Transação realizada com sucesso."})})))
 
 
 (defn in-order [coll order-by desc]
@@ -71,6 +83,12 @@
     (if desc
       (reverse sorted-coll)
       sorted-coll)))
+
+(defn only-of-type [type coll]
+  (if (nil? type)
+    coll
+    (filter (fn [x] (= (keyword type) (:tipo x))) coll)))
+
 
 
 (defroutes app-routes
@@ -87,9 +105,11 @@
     (GET "/extrato" request {:headers {"Content-Type" "application/json"}
                              :body    (stringify-json 
                                        {:saldo (get-balance :preco_total)
-                                        :transacoes (in-order (db/history)
-                                                              (:por (:params request))
-                                                              (= "true" (:desc (:params request))))})})
+                                        :transacoes
+                                        (only-of-type (:filtro (:params request))
+                                                      (in-order (db/history)
+                                                                (:por (:params request))
+                                                                (= "true" (:desc (:params request)))))})})
     
     (POST "/compra"
       request 
