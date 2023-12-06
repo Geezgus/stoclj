@@ -15,7 +15,7 @@ You will need either:
 To start a web server for the application, run:
 
 ```bash
-export BRAPI_API_TOKEN = ¨your brapi token"
+export BRAPI_API_TOKEN = "your brapi token"
 lein ring server
 ```
 If you want to use docker, instead, run:
